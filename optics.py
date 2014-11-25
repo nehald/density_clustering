@@ -36,19 +36,22 @@ def optics(points,max_radius,min_cluster_size):
 	for j in xrange(m):
 		try:	
 			nbr_list=np.unique(sorted([i for i in sf_filtered[j] if i>0]))
-			print nbr_list
-			pdb.set_trace()	
 			if len(nbr_list) > min_cluster_size -1:
 				cd[j] = nbr_list[min_cluster_size-1]	
 		except:
 			cd[j] = -1 
 			pass;
+	## deep 
 	processed_list=[]
+	for k in cd.keys():
+		print np.where(sf_filtered[k] > -1)
+ 
 	
-	## seeds ZZ
-	seeds = np.arange(m,dtype=N.it)
+	## seeds
+	seeds = np.arange(m,dtype=np.int)
+	
+
+
 
 X = data.sf_data
 cd = optics(np.array(X),4,6)
-for i in cd.keys():
-	print i,cd[i]
