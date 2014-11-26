@@ -22,8 +22,10 @@ def dist_mat(points,metric):
 	return spatial.distance.squareform(distance_mat)
 
 
-def update(cd_mat,sf_filtered_mat,point) : 
+def update(cd_mat,sf_filtered_mat,point,processed) : 
 	neighbors = np.where(sf_filtered_mat[point]>0)
+	neighbors
+
 	num_neighbors = len(neighbors[0])
 	cd_vector = np.ones(num_neighbors)*cd_mat[point]
 	reach_vector = sf_filtered_mat[point][neighbors]
@@ -54,17 +56,34 @@ def optics(points,max_radius,min_cluster_size):
 			pass;
 
 	unprocessed= [i for i in range(0,m)]	
-	processed=[]
-	seeds = np.zeros((m,2)) 
-	rd = np.arange(m,dtype=np.int)
+	processed=[False for i in range(0,m)]
+	seeds = np.zeros((m)) 
+	rd = np.zeros((m))
 	## update 
 	## reachability distance
+	rd_new = True
 	while unprocessed:	
-		point = unprocessed.pop()	
+		point = unprocessed.pop(0)	
 		## get neighbors
-		processed.append(point)
-		pdb.set_trace()
-		mat_ret = update(cd,sf_filtered,point)	
+		processed[point] = True
+		mat_ret = update(cd,sf_filtered,point,processed)	
+		pdb.set_trace() 
+		## sort the result by shortest distance	
+		mat_ret = mat_ret[np.argsort(mat_ret[:,1])]	
+		if rd_new == True:	
+			seeds = mat_ret[:,0].astype(int)
+			rd[seeds] = mat_ret[:,1] 
+			rd_new = False
+		else:
+			seeds = np.append(seeds,mat_ret[:,0].astype(int)) 
+			rd[seeds]=np.minimum(rd[seeds],mat_ret[:,1])	
+
+		while(list(seeds)):
+			seed_index = list(seeds).pop(0)
+			processed[seed_index] = True 
+			mat_ret = update(cd,sf_filtered,seed_index,processed)				
+			seeds = np.append(seeds,mat_ret[:,0].astype(int)) 
+			rd[seeds] = mat_ret[:,1] 
 	print 'foo'
 
 
