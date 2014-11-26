@@ -21,11 +21,22 @@ def dist_mat(points,metric):
 	distance_mat = spatial.distance.pdist(points,lambda u,v: haversine(u,v))
 	return spatial.distance.squareform(distance_mat)
 
+
+def update(cd_mat,sf_filtered_mat,point) : 
+	neighbors = np.where(sf_filtered_mat[point]>0)
+	num_neighbors = len(neighbors[0])
+	cd_vector = np.ones(num_neighbors)*cd_mat[point]
+	reach_vector = sf_filtered_mat[point][neighbors]
+	temp = np.column_stack((cd_vector, reach_vector))
+	maxtemp = np.column_stack((neighbors[0],np.max(temp,axis=1)))
+	return maxtemp
+
+
 def optics(points,max_radius,min_cluster_size):
 	###	
 	m,n = points.shape
 	rd = np.zeros(m)*100000000
-	cd = {} 
+	cd = {i: -1 for i in range(m)} 
 	
 	ordered=[]
 	sf =dist_mat(np.array(X),"foo")
@@ -41,16 +52,20 @@ def optics(points,max_radius,min_cluster_size):
 		except:
 			cd[j] = -1 
 			pass;
-	## deep 
-	processed_list=[]
-	for k in cd.keys():
-		print np.where(sf_filtered[k] > -1)
- 
-	
-	## seeds
-	seeds = np.arange(m,dtype=np.int)
-	
 
+	unprocessed= [i for i in range(0,m)]	
+	processed=[]
+	seeds = np.zeros((m,2)) 
+	rd = np.arange(m,dtype=np.int)
+	## update 
+	## reachability distance
+	while unprocessed:	
+		point = unprocessed.pop()	
+		## get neighbors
+		processed.append(point)
+		pdb.set_trace()
+		mat_ret = update(cd,sf_filtered,point)	
+	print 'foo'
 
 
 X = data.sf_data
