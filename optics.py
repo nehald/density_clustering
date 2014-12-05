@@ -26,9 +26,9 @@ def dist_mat(points, metric):
 
 
 def update(cd_mat, sf_filtered_mat, point, processed):
+    ## find all the neighbors 
+    pdb.set_trace() 
     neighbors = np.where(sf_filtered_mat[point] > 0)
-    neighbors
-
     num_neighbors = len(neighbors[0])
     cd_vector = np.ones(num_neighbors) * cd_mat[point]
     reach_vector = sf_filtered_mat[point][neighbors]
@@ -44,7 +44,7 @@ def optics(points, max_radius, min_cluster_size):
         alogrithm is that it requires having a idea of the density of the clusters.
         """
 
-
+    #  Constant values
     m, n = points.shape
     rd = np.zeros(m) * 100000000
     cd = {i: -1 for i in range(m)}
@@ -53,21 +53,26 @@ def optics(points, max_radius, min_cluster_size):
     sf = dist_mat(np.array(X), "foo")
     tmp = np.zeros((m, m)) - 1
     sf_filtered = np.where(sf < max_radius, sf, tmp)
-    print sf_filtered
-    # calculate core distance
-    for j in xrange(m):
+   
+     # calculate core distance.  The core distance 
+     # is the distance from a point to its nth-neighbor 
+     #  
+    for point in xrange(m):
         try:
-            nbr_list = np.unique(sorted([i for i in sf_filtered[j] if i > 0]))
+            nbr_list = np.unique(sorted([i for i in sf_filtered[point] if i > 0]))
             if len(nbr_list) > min_cluster_size - 1:
-                cd[j] = nbr_list[min_cluster_size - 1]
+                cd[point] = nbr_list[min_cluster_size - 1]
         except:
-            cd[j] = -1
+            cd[point] = -1
             pass
 
-    unprocessed = [i for i in range(0, m)]
-    processed = [False for i in range(0, m)]
+    ## setup up two queues
+    ## the processed queue and the unprocessed
+    unprocessed = [i for i in range(0, len(cd))]
+    processed = [False for i in range(0, len(cd))]
     seeds = np.zeros((m))
     rd = np.zeros((m))
+    
     # update
     # reachability distance
     rd_new = True
@@ -76,6 +81,7 @@ def optics(points, max_radius, min_cluster_size):
         # get neighbors
         processed[point] = True
         mat_ret = update(cd, sf_filtered, point, processed)
+
         # sort the result by shortest distance
         mat_ret = mat_ret[np.argsort(mat_ret[:, 1])]
         if rd_new:
