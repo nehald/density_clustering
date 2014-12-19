@@ -2,12 +2,11 @@ import numpy as np
 from scipy import spatial
 from math import sqrt, radians, cos, sin, asin, atan2
 import pdb
-import data
 
 
 def haversine(A, B):
     """ This function Calculates the distance between points A and B.
-    A is a tuple.. A= (longitude,latitude) """
+    A and B are tuples.. A= (longitude,latitude) """
     lon1, lat1 = A
     lon2, lat2 = B
     R = 6372.8  # Earth radius in kilometers
@@ -20,21 +19,23 @@ def haversine(A, B):
     return R * c
 
 
-def dist_mat(points, metric):
-    distance_mat = spatial.distance.pdist(points, lambda u, v: haversine(u, v))
-    return spatial.distance.squareform(distance_mat)
-
-
-def update(cd_mat, sf_filtered_mat, point, processed):
-    ## find all the neighbors 
-    pdb.set_trace() 
-    neighbors = np.where(sf_filtered_mat[point] > 0)
-    num_neighbors = len(neighbors[0])
-    cd_vector = np.ones(num_neighbors) * cd_mat[point]
-    reach_vector = sf_filtered_mat[point][neighbors]
+def update(core_dist_pt, distance_mat, point, seeds):
+    ## find all the neighbors
+    cd_vector = np.ones(len(seeds)) * core_dist_pt
+    reach_vector = distance_mat[point][seeds]
     temp = np.column_stack((cd_vector, reach_vector))
-    maxtemp = np.column_stack((neighbors[0], np.max(temp, axis=1)))
+    #pdb.set_trace()
+    maxtemp =  np.max(temp, axis=1)
     return maxtemp
+
+
+
+def dist_mat(points, metric):
+	if metric == 'haversine':
+    		distance_mat = spatial.distance.pdist(points, lambda u, v: haversine(u, v))
+   	else:
+    		distance_mat = spatial.distance.pdist(points, metric)
+	return spatial.distance.squareform(distance_mat)
 
 
 def optics(points, max_radius, min_cluster_size):
@@ -42,64 +43,51 @@ def optics(points, max_radius, min_cluster_size):
     """ The optics algorithm.  The optics algorithm tries overcome the
         limitation of the DBSCAN algorithms.  The main limitation of the DBSCAB
         alogrithm is that it requires having a idea of the density of the clusters.
-        """
-
+       """
     #  Constant values
     m, n = points.shape
-    rd = np.zeros(m) * 100000000
-    cd = {i: -1 for i in range(m)}
-
+    rd = np.ones(m) * 100000000
+#    cd = {i: -1 for i in range(m)}
+    cd = np.ones(m)*-1;    
     ordered = []
-    sf = dist_mat(np.array(X), "foo")
+    distance_mat = dist_mat(np.array(X), "euclidean")
     tmp = np.zeros((m, m)) - 1
-    sf_filtered = np.where(sf < max_radius, sf, tmp)
-   
-     # calculate core distance.  The core distance 
-     # is the distance from a point to its nth-neighbor 
-     #  
+    # calculate core distance.  The core distance 
+    # is the distance from a point to its nth-neighbor 
+    #  
     for point in xrange(m):
         try:
-            nbr_list = np.unique(sorted([i for i in sf_filtered[point] if i > 0]))
+	    ## get neighbor list in sorted order (closest to farthest)
+            nbr_list = sorted([i for i in distance_mat[point] if i > 0])
             if len(nbr_list) > min_cluster_size - 1:
                 cd[point] = nbr_list[min_cluster_size - 1]
-        except:
-            cd[point] = -1
-            pass
-
-    ## setup up two queues
-    ## the processed queue and the unprocessed
-    unprocessed = [i for i in range(0, len(cd))]
-    processed = [False for i in range(0, len(cd))]
-    seeds = np.zeros((m))
-    rd = np.zeros((m))
-    
-    # update
-    # reachability distance
-    rd_new = True
-    while unprocessed:
-        point = unprocessed.pop(0)
-        # get neighbors
-        processed[point] = True
-        mat_ret = update(cd, sf_filtered, point, processed)
-
-        # sort the result by shortest distance
-        mat_ret = mat_ret[np.argsort(mat_ret[:, 1])]
-        if rd_new:
-            seeds = mat_ret[:, 0].astype(int)
-            rd[seeds] = mat_ret[:, 1]
-            rd_new = False
-        else:
-            seeds = np.append(seeds, mat_ret[:, 0].astype(int))
-            rd[seeds] = np.minimum(rd[seeds], mat_ret[:, 1])
-
-        while(list(seeds)):
-            seed_index = list(seeds).pop(0)
-            processed[seed_index] = True
-            mat_ret = update(cd, sf_filtered, seed_index, processed)
-            seeds = np.append(seeds, mat_ret[:, 0].astype(int))
-            rd[seeds] = mat_ret[:, 1]
-    print 'foo'
-
+	except:
+            	cd[point] = -1
+	
+    ## calculate the reachability
+    processed=[]
+    index = 0
+    seeds =  np.array([i for i in range(0,m)]) 
+    while len(seeds) != 1: 
+	seed_trial = seeds[index] 
+	processed.append(seed_trial)
+	#print processed	
+	seed_indexes = np.where(seeds != seed_trial)
+	seeds = seeds[seed_indexes]
+	## compare the core distance and the reachability		
+	rd_temp=update(cd[seed_trial], distance_mat,seed_trial, seeds)
+	print rd_temp
+	## compare the current reachability matrix with an updated rd
+	## if the updata rd is less then the rd	
+	rd_index = np.where(rd[seeds]>rd_temp)[0]	
+	#pdb.set_trace()	
+	rd[seeds[rd_index]] = rd_temp[rd_index]
+	index = np.argmin(rd[seeds]) 
+	print processed
+    processed.append(seeds[0])
+    rd[0] =0
+    return rd,cd,processed 
+		
 if __name__ == '__main__':
-	X = data.sf_data
-	cd = optics(np.array(X), 4, 6)
+	X = np.load("zhang.dat.npy")	
+	rd,cd,processed = optics(X, 4, 9)
