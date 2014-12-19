@@ -2,7 +2,8 @@ import numpy as np
 from scipy import spatial
 from math import sqrt, radians, cos, sin, asin, atan2
 import pdb
-
+import get_data
+import AutomaticClustering as AutoC
 
 def haversine(A, B):
     """ This function Calculates the distance between points A and B.
@@ -38,7 +39,7 @@ def dist_mat(points, metric):
 	return spatial.distance.squareform(distance_mat)
 
 
-def optics(points, max_radius, min_cluster_size):
+def optics(points, min_cluster_size,metric):
     # setup variables
     """ The optics algorithm.  The optics algorithm tries overcome the
         limitation of the DBSCAN algorithms.  The main limitation of the DBSCAB
@@ -50,7 +51,7 @@ def optics(points, max_radius, min_cluster_size):
 #    cd = {i: -1 for i in range(m)}
     cd = np.ones(m)*-1;    
     ordered = []
-    distance_mat = dist_mat(np.array(X), "euclidean")
+    distance_mat = dist_mat(np.array(X), metric)
     tmp = np.zeros((m, m)) - 1
     # calculate core distance.  The core distance 
     # is the distance from a point to its nth-neighbor 
@@ -76,18 +77,27 @@ def optics(points, max_radius, min_cluster_size):
 	seeds = seeds[seed_indexes]
 	## compare the core distance and the reachability		
 	rd_temp=update(cd[seed_trial], distance_mat,seed_trial, seeds)
-	print rd_temp
 	## compare the current reachability matrix with an updated rd
 	## if the updata rd is less then the rd	
 	rd_index = np.where(rd[seeds]>rd_temp)[0]	
 	#pdb.set_trace()	
 	rd[seeds[rd_index]] = rd_temp[rd_index]
 	index = np.argmin(rd[seeds]) 
-	print processed
     processed.append(seeds[0])
     rd[0] =0
     return rd,cd,processed 
 		
 if __name__ == '__main__':
-	X = np.load("zhang.dat.npy")	
-	rd,cd,processed = optics(X, 4, 9)
+	#X = np.load("zhang.dat.npy")	
+	X = get_data.get_data()[0:900]	
+	#rd,cd,processed = optics(np.array(X),30,"euclidean")
+	rd,cd,processed = optics(np.array(X),100,"haversine")
+	# zhang_results= np.array(processed) 
+	# np.save("zhang_results.dat",zhang_results)
+	RPlot = []
+	RPoints = []
+	for item in processed:
+    		RPlot.append(rd[item]) #Reachability Plot
+    		RPoints.append([X[item][0],X[item][1]]) #points in their order determined by OPTICS
+	rootNode = AutoC.automaticCluster(RPlot, RPoints)
+	AutoC.graphTree(rootNode, RPlot)
