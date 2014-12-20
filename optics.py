@@ -4,7 +4,8 @@ from math import sqrt, radians, cos, sin, asin, atan2
 import pdb
 import get_data
 import AutomaticClustering as AutoC
-
+import matplotlib.pyplot as plt
+import f
 def haversine(A, B):
     """ This function Calculates the distance between points A and B.
     A and B are tuples.. A= (longitude,latitude) """
@@ -51,7 +52,13 @@ def optics(points, min_cluster_size,metric):
 #    cd = {i: -1 for i in range(m)}
     cd = np.ones(m)*-1;    
     ordered = []
-    distance_mat = dist_mat(np.array(X), metric)
+    
+    try:
+	distance_mat = np.load("dist_mat.npy")
+    except:
+        print 'Creating new dist_mat'
+    	distance_mat = dist_mat(np.array(X), metric)
+        np.save("dist_mat",distance_mat)
     tmp = np.zeros((m, m)) - 1
     # calculate core distance.  The core distance 
     # is the distance from a point to its nth-neighbor 
@@ -88,16 +95,50 @@ def optics(points, min_cluster_size,metric):
     return rd,cd,processed 
 		
 if __name__ == '__main__':
-	#X = np.load("zhang.dat.npy")	
-	X = get_data.get_data()[0:900]	
+	#X = np.load("zhang2.dat.npy")	
+	#X = get_data.get_data()[0:8000]	
 	#rd,cd,processed = optics(np.array(X),30,"euclidean")
-	rd,cd,processed = optics(np.array(X),100,"haversine")
+ 	X = f.fitz_data()
+	rd,cd,processed = optics(np.array(X),10,"euclidean")
 	# zhang_results= np.array(processed) 
 	# np.save("zhang_results.dat",zhang_results)
+	pdb.set_trace()
 	RPlot = []
 	RPoints = []
 	for item in processed:
     		RPlot.append(rd[item]) #Reachability Plot
     		RPoints.append([X[item][0],X[item][1]]) #points in their order determined by OPTICS
+	
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.plot(X[:,0], X[:,1], 'b.', ms=2)
+	plt.savefig('Graph.png', dpi=None, facecolor='w', edgecolor='w',
+    		orientation='portrait', papertype=None, format=None,
+		transparent=False, bbox_inches=None, pad_inches=0.1)
+	plt.show()
+
+
 	rootNode = AutoC.automaticCluster(RPlot, RPoints)
 	AutoC.graphTree(rootNode, RPlot)
+	#get only the leaves of the tree
+	leaves = AutoC.getLeaves(rootNode, [])
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	print X
+  	import itertools	
+        ax.plot(X[:,0], X[:,1], 'y.')
+	colors = itertools.cycle('gmkrcbgrcmk')
+	for item, c in zip(leaves, colors):
+		print item,c
+    		node = []
+    		for v in range(item.start,item.end):
+        		node.append(RPoints[v])
+    		node = np.array(node)
+    		ax.plot(node[:,0],node[:,1], c+'o', ms=5)
+
+plt.savefig('Graph2.png', dpi=None, facecolor='w', edgecolor='w',
+    orientation='portrait', papertype=None, format=None,
+    transparent=False, bbox_inches=None, pad_inches=0.1)
+plt.show()
+
