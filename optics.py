@@ -10,7 +10,7 @@ import f
 
 def haversine(A, B):
     """	Args:  A and B are Lon/Lat point.  Returns distance between
-	A and B in kilometers """	
+        A and B in kilometers """
     lon1, lat1 = A
     lon2, lat2 = B
     R = 6372.8  # Earth radius in kilometers
@@ -24,7 +24,12 @@ def haversine(A, B):
 
 
 def update(core_dist_pt, distance_mat, point, seeds):
-    # find all the neighbors
+    """ For each "point" neighbor list calculate a vector of distance between
+        that point and each of its' neighbors. 
+        If the distance  (the reachability) to it's
+        neighbors is greater then the core distance retain the 
+        reachability.. If the neighbors distances is then the core distance 
+        set it's value to the core distance """
     cd_vector = np.ones(len(seeds)) * core_dist_pt
     reach_vector = distance_mat[point][seeds]
     temp = np.column_stack((cd_vector, reach_vector))
@@ -55,6 +60,8 @@ def optics(points, min_cluster_size, metric):
     cd = np.ones(m) * -1
     ordered = []
 
+   # calculate the distance between all points (n^2) calculation
+   # uses the scipy.spatial package
     try:
         distance_mat = np.load("dist_mat.npy")
     except:
@@ -62,12 +69,13 @@ def optics(points, min_cluster_size, metric):
         distance_mat = dist_mat(np.array(X), metric)
         np.save("dist_mat", distance_mat)
     tmp = np.zeros((m, m)) - 1
+
     # calculate core distance.  The core distance
     # is the distance from a point to its nth-neighbor
-    #
     for point in xrange(m):
         try:
             # get neighbor list in sorted order (closest to farthest)
+            # get the nth (e.g. min_cluster_size) values
             nbr_list = sorted([i for i in distance_mat[point] if i > 0])
             if len(nbr_list) > min_cluster_size - 1:
                 cd[point] = nbr_list[min_cluster_size - 1]
@@ -77,11 +85,13 @@ def optics(points, min_cluster_size, metric):
     # calculate the reachability
     processed = []
     index = 0
+    # loop through all the points (called the seeds)
     seeds = np.array([i for i in range(0, m)])
     while len(seeds) != 1:
         seed_trial = seeds[index]
+        # mark this seed a s processed
         processed.append(seed_trial)
-        # print processed
+        # this loop decrements the number of seeds
         seed_indexes = np.where(seeds != seed_trial)
         seeds = seeds[seed_indexes]
         # compare the core distance and the reachability
@@ -140,4 +150,3 @@ plt.savefig('Graph2.png', dpi=None, facecolor='w', edgecolor='w',
             orientation='portrait', papertype=None, format=None,
             transparent=False, bbox_inches=None, pad_inches=0.1)
 plt.show()
- 
