@@ -6,8 +6,8 @@ import get_data
 import AutomaticClustering as AutoC
 import matplotlib.pyplot as plt
 import f
-
-
+import scipy
+import itertools
 def haversine(A, B):
     """	Args:  A and B are Lon/Lat point.  Returns distance between
         A and B in kilometers """
@@ -94,7 +94,7 @@ def optics(points, min_cluster_size, metric):
         # this loop decrements the number of seeds
         seed_indexes = np.where(seeds != seed_trial)
         seeds = seeds[seed_indexes]
-        # compare the core distance and the reachability
+        # compare reachability vector this point..   
         rd_temp = update(cd[seed_trial], distance_mat, seed_trial, seeds)
         # compare the current reachability matrix with an updated rd
         # if the updata rd is less then the rd
@@ -108,43 +108,51 @@ def optics(points, min_cluster_size, metric):
 
 if __name__ == '__main__':
         #X = np.load("zhang2.dat.npy")
-    X = np.array(get_data.get_data()[0:7500])
-    #rd,cd,processed = optics(np.array(X),30,"euclidean")
-    #X = f.fitz_data()
-    rd, cd, processed = optics(np.array(X), 150, "haversine")
-    # zhang_results= np.array(processed)
-    # np.save("zhang_results.dat",zhang_results)
-    pdb.set_trace()
+    min_cluster_size = 100 
+    X = np.array(get_data.get_data()[14000:21000])
+    rd, cd, processed = optics(np.array(X), min_cluster_size, "haversine")
+   
+    ## create 2 plots 
     RPlot = []
     RPoints = []
     for item in processed:
         RPlot.append(rd[item])  # Reachability Plot
         RPoints.append([X[item][0], X[item][1]])
+    
+    ## create some plot
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot(X[:, 0], X[:, 1], 'b.', ms=2)
+    ax.set_title('Crime in SF (March 2012)')
     plt.savefig('Graph.png', dpi=None, facecolor='w', edgecolor='w',
                 orientation='portrait', papertype=None, format=None,
                 transparent=False, bbox_inches=None, pad_inches=0.1)
     plt.show()
-
     rootNode = AutoC.automaticCluster(RPlot, RPoints)
     AutoC.graphTree(rootNode, RPlot)
     # get only the leaves of the tree
     leaves = AutoC.getLeaves(rootNode, [])
-
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    import itertools
+    ax.set_title('Clusters (March 2012) min size = 100') 
     ax.plot(X[:, 0], X[:, 1], 'b.', ms=2)
-    colors = itertools.cycle('gmrckwygmrcmkwy')
+    colors = itertools.cycle('rgmckwygmrcmkwy')
     for item, c in zip(leaves, colors):
         print item, c
         node = []
         for v in range(item.start, item.end):
             node.append(RPoints[v])
         node = np.array(node)
+	try:
+		hull=spatial.ConvexHull(node)
+		#pdb.set_trace()	
+		x = np.append(hull.vertices,[hull.vertices[0]])
+		#ax.plot(node[x,0],node[x,1],c, lw=2.5)
+	except:
+		print 'Error creating convex hull'	
+		pass;  
         ax.plot(node[:, 0], node[:, 1], c + 'o', ms=2)
+
 
 plt.savefig('Graph2.png', dpi=None, facecolor='w', edgecolor='w',
             orientation='portrait', papertype=None, format=None,
