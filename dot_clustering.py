@@ -25,7 +25,6 @@ for a,b in pos_labels:
 			pos_label_dict[a] = []	
 			pos_label_dict[a].append(b)
 
-
 convex_hull_area=[]
 for k in pos_label_dict.keys():
 	x = pos_label_dict[k]
@@ -40,17 +39,28 @@ for k in pos_label_dict.keys():
 ##
 conv_array = np.array(convex_hull_area)
 conv_array_count = collections.Counter(conv_array)
-conv = dict(conv_array_count.most_common(5))
+#conv = dict(conv_array_count.most_common(5))
+
+## histogram 
+conv={}
+Y=np.histogram(conv_array)
+print Y
+X = np.argsort(Y[0])[::-1][:5]
+
+for i in X:
+	conv[Y[1][i]]=Y[0][i]
 total = 0
 samps=0
+import pdb
+pdb.set_trace()
 for k in conv.keys():
 	total = k*conv[k]+total	
 	samps = samps+conv[k]
-	print total,samps,total/samps 
+	#print total,samps,total/samps 
 weight_avg = total/samps 
-mean=np.mean(np.array(convex_hull_area)) 
-std=np.std(np.array(convex_hull_area))
-print mean,std
+#mean=np.mean(np.array(convex_hull_area)) 
+#std=np.std(np.array(convex_hull_area))
+#print mean,std
 print sum(conv_array/weight_avg)
 #plt.hist(conv_array)
 #plt.show()
